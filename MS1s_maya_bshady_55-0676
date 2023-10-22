@@ -1,0 +1,49 @@
+import socket
+import threading
+
+
+PORT = 5605
+ADDR = ('127.0.0.1', PORT)
+
+
+clients = []
+
+
+def handle_client(conn, addr):
+    print(f"[NEW CONNECTION] {addr} connected.")
+    clients.append(conn)
+
+    while True:
+        message = conn.recv(1024).decode('utf-8')
+        if not message:
+            break
+        print(f"Received from {addr}: {message}")
+
+        
+        if message == "CLOSE SOCKET":
+            conn.close()
+            clients.remove(conn)
+            print(f"[CONNECTION CLOSED] {addr} closed the connection.")
+            break
+
+        
+        response = message.upper()
+        conn.send(bytes(response, 'utf-8'))
+
+    conn.close()
+
+
+def main():
+    print("Server is starting...")
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(ADDR)
+    server.listen()
+
+    while True:
+        conn, addr = server.accept()
+        client_thread = threading.Thread(target=handle_client, args=(conn, addr))
+        client_thread.start()
+        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 2}")
+
+if __name__ == "__main__":
+    main()
